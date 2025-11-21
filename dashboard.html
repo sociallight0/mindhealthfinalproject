@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard - MindSpace</title>
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/dashboard.css">
 </head>
 <body>
@@ -116,7 +116,7 @@
             </div>
             <div class="card-body">
               <div id="upcomingAppointments">
-                <p class="text-muted text-center">Loading appointments...</p>
+                <p class="text-center text-muted">Loading appointments...</p>
               </div>
             </div>
           </div>
@@ -129,7 +129,7 @@
             </div>
             <div class="card-body">
               <div id="recentMoods">
-                <p class="text-muted text-center">Loading mood entries...</p>
+                <p class="text-center text-muted">Loading mood entries...</p>
               </div>
             </div>
           </div>
@@ -172,6 +172,15 @@
   <script>
     // Initialize dashboard
     document.addEventListener('DOMContentLoaded', async () => {
+      // CRITICAL: Wait for database to be ready first
+      try {
+        await window.dbReadyPromise;
+      } catch (error) {
+        console.error('Failed to initialize database:', error);
+        alert('Database initialization failed. Please refresh the page.');
+        return;
+      }
+
       // Check authentication
       const isAuth = await Auth.requireAuth();
       if (!isAuth) return;
