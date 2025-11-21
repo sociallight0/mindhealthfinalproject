@@ -248,7 +248,7 @@ class Auth {
   static async requireAuth() {
     const isLoggedIn = await AuthUtils.isLoggedIn();
     if (!isLoggedIn) {
-      window.location.href = '../pages/login.html';
+      window.location.href = 'pages/login.html';
       return false;
     }
     return true;
