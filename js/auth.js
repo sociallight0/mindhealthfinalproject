@@ -55,75 +55,85 @@ class Auth {
       };
     }
   }
+// In auth.js, update the login method:
 
-  // Login user
-  static async login(email, password, rememberMe = false) {
-    try {
-      // Find user by email
-      const users = await mindspaceDB.getByIndex('users', 'email', email);
-      
-      if (users.length === 0) {
-        return {
-          success: false,
-          message: 'Invalid email or password'
-        };
-      }
-
-      const user = users[0];
-
-      // Verify password (in production, use proper password hashing)
-      if (user.password !== password) {
-        return {
-          success: false,
-          message: 'Invalid email or password'
-        };
-      }
-
-      // Create session
-      const sessionToken = AuthUtils.generateToken();
-      const session = {
-        userId: user.id,
-        token: sessionToken,
-        email: user.email,
-        fullName: user.fullName,
-        username: user.username,
-        profileImage: user.profileImage,
-        loginTime: new Date().toISOString(),
-        rememberMe: rememberMe
-      };
-
-      // Clear any existing sessions first
-      const existingSessions = await mindspaceDB.getAll('sessions');
-      for (const oldSession of existingSessions) {
-        await mindspaceDB.delete('sessions', oldSession.userId);
-      }
-
-      // Save new session
-      await mindspaceDB.add('sessions', session);
-
-      // Store in localStorage if remember me
-      if (rememberMe) {
-        StorageUtils.saveLocal('mindspace_session', sessionToken);
-      }
-
-      return {
-        success: true,
-        user: {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          fullName: user.fullName
-        },
-        message: 'Login successful'
-      };
-    } catch (error) {
-      console.error('Login error:', error);
+static async login(email, password, rememberMe = false) {
+  try {
+    // Find user by email
+    const users = await mindspaceDB.getByIndex('users', 'email', email);
+    
+    if (users.length === 0) {
       return {
         success: false,
-        message: 'Login failed. Please try again.'
+        message: 'Invalid email or password'
       };
     }
+
+    const user = users[0];
+
+    // Verify password
+    if (user.password !== password) {
+      return {
+        success: false,
+        message: 'Invalid email or password'
+      };
+    }
+
+    // Create session
+    const sessionToken = AuthUtils.generateToken();
+    const session = {
+      userId: user.id,
+      token: sessionToken,
+      email: user.email,
+      fullName: user.fullName,
+      username: user.username,
+      profileImage: user.profileImage,
+      loginTime: new Date().toISOString(),
+      rememberMe: rememberMe
+    };
+
+    // Clear any existing sessions first
+    const existingSessions = await mindspaceDB.getAll('sessions');
+    for (const oldSession of existingSessions) {
+      await mindspaceDB.delete('sessions', oldSession.userId);
+    }
+
+    // Save new session - WAIT for it to complete
+    await mindspaceDB.add('sessions', session);
+    
+    // IMPORTANT: Verify session was saved
+    const savedSession = await mindspaceDB.get('sessions', user.id);
+    if (!savedSession) {
+      console.error('Session save failed!');
+      return {
+        success: false,
+        message: 'Session creation failed'
+      };
+    }
+
+    // Store in localStorage if remember me
+    if (rememberMe) {
+      StorageUtils.saveLocal('mindspace_session', sessionToken);
+    }
+
+    return {
+      success: true,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        fullName: user.fullName
+      },
+      message: 'Login successful'
+    };
+  } catch (error) {
+    console.error('Login error:', error);
+    return {
+      success: false,
+      message: 'Login failed. Please try again.'
+    };
   }
+}
 
   // Get current user from session
   static async getCurrentUser() {
