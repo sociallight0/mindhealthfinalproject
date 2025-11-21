@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile - MindSpace</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+</head>
+<body>
+  <div class="dashboard-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h2>🧠 MindSpace</h2>
+      </div>
+      
+      <nav class="sidebar-nav">
+        <a href="dashboard.html" class="nav-item">
+          <span class="nav-icon">📊</span>
+          <span>Dashboard</span>
+        </a>
+        <a href="therapists.html" class="nav-item">
+          <span class="nav-icon">👨‍⚕️</span>
+          <span>My Therapists</span>
+        </a>
+        <a href="appointments.html" class="nav-item">
+          <span class="nav-icon">📅</span>
+          <span>Appointments</span>
+        </a>
+        <a href="mood-tracker.html" class="nav-item">
+          <span class="nav-icon">😊</span>
+          <span>Mood Tracker</span>
+        </a>
+        <a href="profile.html" class="nav-item active">
+          <span class="nav-icon">👤</span>
+          <span>Profile</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button id="logoutBtn" class="btn btn-outline btn-block">
+          <span>🚪 Logout</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Top Bar -->
+      <header class="top-bar">
+        <div class="top-bar-left">
+          <h1>My Profile</h1>
+        </div>
+      </header>
+
+      <!-- Profile Content -->
+      <div class="dashboard-content">
+        <!-- Profile Header -->
+        <div class="profile-header card">
+          <img id="profileAvatar" src="" alt="Profile Picture" class="profile-avatar">
+          <div class="profile-info">
+            <h2 id="profileName">Loading...</h2>
+            <p id="profileEmail" class="text-muted">Loading...</p>
+            <p class="profile-joined">Member since: <span id="joinDate">-</span></p>
+          </div>
+        </div>
+
+        <!-- Profile Tabs -->
+        <div class="profile-tabs card">
+          <div class="tabs-header">
+            <button class="tab-btn active" data-tab="personal">Personal Information</button>
+            <button class="tab-btn" data-tab="security">Security</button>
+            <button class="tab-btn" data-tab="emergency">Emergency Contact</button>
+          </div>
+
+          <!-- Personal Information Tab -->
+          <div class="tab-content active" id="personal-tab">
+            <form id="personalInfoForm">
+              <div class="form-group">
+                <label for="fullName">Full Name</label>
+                <input type="text" id="fullName" name="fullName" required>
+              </div>
+
+              <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required>
+              </div>
+
+              <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" required>
+              </div>
+
+              <div class="form-group">
+                <label for="phone">Phone Number</label>
+                <input type="tel" id="phone" name="phone" required>
+              </div>
+
+              <div id="personalError" class="error-message"></div>
+
+              <button type="submit" class="btn btn-primary">Save Changes</button>
+            </form>
+          </div>
+
+          <!-- Security Tab -->
+          <div class="tab-content" id="security-tab">
+            <form id="securityForm">
+              <div class="form-group">
+                <label for="currentPassword">Current Password</label>
+                <input type="password" id="currentPassword" name="currentPassword" required>
+              </div>
+
+              <div class="form-group">
+                <label for="newPassword">New Password</label>
+                <input type="password" id="newPassword" name="newPassword" required>
+                <small class="text-muted">Must be at least 6 characters with one number</small>
+              </div>
+
+              <div class="form-group">
+                <label for="confirmNewPassword">Confirm New Password</label>
+                <input type="password" id="confirmNewPassword" name="confirmNewPassword" required>
+              </div>
+
+              <div id="securityError" class="error-message"></div>
+
+              <button type="submit" class="btn btn-primary">Change Password</button>
+            </form>
+
+            <hr style="margin: 2rem 0;">
+
+            <div class="danger-zone">
+              <h3 style="color: #DC3545;">Danger Zone</h3>
+              <p class="text-muted">Once you delete your account, there is no going back. Please be certain.</p>
+              <button id="deleteAccountBtn" class="btn" style="background-color: #DC3545; color: white;">
+                Delete Account
+              </button>
+            </div>
+          </div>
+
+          <!-- Emergency Contact Tab -->
+          <div class="tab-content" id="emergency-tab">
+            <form id="emergencyForm">
+              <div class="form-group">
+                <label for="emergencyName">Emergency Contact Name</label>
+                <input type="text" id="emergencyName" name="emergencyName">
+              </div>
+
+              <div class="form-group">
+                <label for="emergencyPhone">Emergency Contact Phone</label>
+                <input type="tel" id="emergencyPhone" name="emergencyPhone">
+              </div>
+
+              <div class="form-group">
+                <label for="emergencyRelationship">Relationship</label>
+                <input type="text" id="emergencyRelationship" name="emergencyRelationship" placeholder="e.g., Parent, Spouse, Friend">
+              </div>
+
+              <div id="emergencyError" class="error-message"></div>
+
+              <button type="submit" class="btn btn-primary">Save Emergency Contact</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/db.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/auth.js"></script>
+  <script>
+    let currentUser = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Check authentication
+      const isAuth = await Auth.requireAuth();
+      if (!isAuth) return;
+
+      // Get current user
+      currentUser = await Auth.getCurrentUser();
+      if (!currentUser) {
+        window.location.href = 'login.html';
+        return;
+      }
+
+      // Load profile data
+      loadProfileData();
+
+      // Tab switching
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tabName = btn.dataset.tab;
+          switchTab(tabName);
+        });
+      });
+
+      // Form handlers
+      document.getElementById('personalInfoForm').addEventListener('submit', handlePersonalInfoSubmit);
+      document.getElementById('securityForm').addEventListener('submit', handleSecuritySubmit);
+      document.getElementById('emergencyForm').addEventListener('submit', handleEmergencySubmit);
+      document.getElementById('deleteAccountBtn').addEventListener('click', handleDeleteAccount);
+      document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+    });
+
+    function loadProfileData() {
+      // Profile header
+      document.getElementById('profileAvatar').src = currentUser.profileImage;
+      document.getElementById('profileName').textContent = currentUser.fullName;
+      document.getElementById('profileEmail').textContent = currentUser.email;
+      document.getElementById('joinDate').textContent = DateUtils.formatDate(currentUser.dateJoined);
+
+      // Personal info form
+      document.getElementById('fullName').value = currentUser.fullName;
+      document.getElementById('username').value = currentUser.username;
+      document.getElementById('email').value = currentUser.email;
+      document.getElementById('phone').value = currentUser.phone;
+
+      // Emergency contact
+      if (currentUser.emergencyContact) {
+        document.getElementById('emergencyName').value = currentUser.emergencyContact.name || '';
+        document.getElementById('emergencyPhone').value = currentUser.emergencyContact.phone || '';
+        document.getElementById('emergencyRelationship').value = currentUser.emergencyContact.relationship || '';
+      }
+    }
+
+    function switchTab(tabName) {
+      // Update buttons
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.tab === tabName) {
+          btn.classList.add('active');
+        }
+      });
+
+      // Update content
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      document.getElementById(`${tabName}-tab`).classList.add('active');
+    }
+
+    async function handlePersonalInfoSubmit(e) {
+      e.preventDefault();
+      UIUtils.clearError('personalError');
+
+      const updates = {
+        fullName: document.getElementById('fullName').value.trim(),
+        username: document.getElementById('username').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        phone: document.getElementById('phone').value.trim()
+      };
+
+      // Validation
+      if (!ValidationUtils.isValidEmail(updates.email)) {
+        UIUtils.showError('personalError', 'Please enter a valid email');
+        return;
+      }
+
+      if (!ValidationUtils.isValidPhone(updates.phone)) {
+        UIUtils.showError('personalError', 'Please enter a valid phone number');
+        return;
+      }
+
+      const result = await Auth.updateProfile(currentUser.id, updates);
+      
+      if (result.success) {
+        currentUser = result.user;
+        loadProfileData();
+        UIUtils.showNotification('Profile updated successfully!', 'success');
+      } else {
+        UIUtils.showError('personalError', result.message);
+      }
+    }
+
+    async function handleSecuritySubmit(e) {
+      e.preventDefault();
+      UIUtils.clearError('securityError');
+
+      const currentPassword = document.getElementById('currentPassword').value;
+      const newPassword = document.getElementById('newPassword').value;
+      const confirmPassword = document.getElementById('confirmNewPassword').value;
+
+      if (newPassword !== confirmPassword) {
+        UIUtils.showError('securityError', 'New passwords do not match');
+        return;
+      }
+
+      if (!ValidationUtils.isValidPassword(newPassword)) {
+        UIUtils.showError('securityError', 'Password must be at least 6 characters with one number');
+        return;
+      }
+
+      const result = await Auth.changePassword(currentUser.id, currentPassword, newPassword);
+      
+      if (result.success) {
+        UIUtils.showNotification('Password changed successfully!', 'success');
+        document.getElementById('securityForm').reset();
+      } else {
+        UIUtils.showError('securityError', result.message);
+      }
+    }
+
+    async function handleEmergencySubmit(e) {
+      e.preventDefault();
+      UIUtils.clearError('emergencyError');
+
+      const updates = {
+        emergencyContact: {
+          name: document.getElementById('emergencyName').value.trim(),
+          phone: document.getElementById('emergencyPhone').value.trim(),
+          relationship: document.getElementById('emergencyRelationship').value.trim()
+        }
+      };
+
+      const result = await Auth.updateProfile(currentUser.id, updates);
+      
+      if (result.success) {
+        currentUser = result.user;
+        UIUtils.showNotification('Emergency contact updated!', 'success');
+      } else {
+        UIUtils.showError('emergencyError', result.message);
+      }
+    }
+
+    async function handleDeleteAccount() {
+      const confirmed = confirm('Are you absolutely sure you want to delete your account? This action cannot be undone.');
+      
+      if (!confirmed) return;
+
+      const password = prompt('Please enter your password to confirm account deletion:');
+      
+      if (!password) return;
+
+      const result = await Auth.deleteAccount(currentUser.id, password);
+      
+      if (result.success) {
+        alert('Your account has been deleted.');
+        window.location.href = '../index.html';
+      } else {
+        alert(result.message);
+      }
+    }
+
+    async function handleLogout() {
+      if (confirm('Are you sure you want to logout?')) {
+        await Auth.logout();
+      }
+    }
+  </script>
+</body>
+</html>
