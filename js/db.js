@@ -6,16 +6,34 @@ const DB_VERSION = 1;
 class MindSpaceDB {
   constructor() {
     this.db = null;
+    this.ready = false;
+    this.readyPromise = null;
   }
 
   // Initialize database
   async init() {
-    return new Promise((resolve, reject) => {
+    // If already initializing, return the existing promise
+    if (this.readyPromise) {
+      return this.readyPromise;
+    }
+
+    // If already ready, return resolved promise
+    if (this.ready && this.db) {
+      return Promise.resolve(this.db);
+    }
+
+    // Create new initialization promise
+    this.readyPromise = new Promise((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-      request.onerror = () => reject(request.error);
+      request.onerror = () => {
+        this.ready = false;
+        reject(request.error);
+      };
+      
       request.onsuccess = () => {
         this.db = request.result;
+        this.ready = true;
         resolve(this.db);
       };
 
@@ -68,10 +86,20 @@ class MindSpaceDB {
         }
       };
     });
+
+    return this.readyPromise;
+  }
+
+  // Ensure database is ready before operations
+  async ensureReady() {
+    if (!this.ready || !this.db) {
+      await this.init();
+    }
   }
 
   // Generic CRUD operations
   async add(storeName, data) {
+    await this.ensureReady();
     const tx = this.db.transaction(storeName, 'readwrite');
     const store = tx.objectStore(storeName);
     return new Promise((resolve, reject) => {
@@ -82,6 +110,7 @@ class MindSpaceDB {
   }
 
   async get(storeName, key) {
+    await this.ensureReady();
     const tx = this.db.transaction(storeName, 'readonly');
     const store = tx.objectStore(storeName);
     return new Promise((resolve, reject) => {
@@ -92,6 +121,7 @@ class MindSpaceDB {
   }
 
   async getAll(storeName) {
+    await this.ensureReady();
     const tx = this.db.transaction(storeName, 'readonly');
     const store = tx.objectStore(storeName);
     return new Promise((resolve, reject) => {
@@ -102,6 +132,7 @@ class MindSpaceDB {
   }
 
   async getByIndex(storeName, indexName, value) {
+    await this.ensureReady();
     const tx = this.db.transaction(storeName, 'readonly');
     const store = tx.objectStore(storeName);
     const index = store.index(indexName);
@@ -113,6 +144,7 @@ class MindSpaceDB {
   }
 
   async update(storeName, data) {
+    await this.ensureReady();
     const tx = this.db.transaction(storeName, 'readwrite');
     const store = tx.objectStore(storeName);
     return new Promise((resolve, reject) => {
@@ -123,6 +155,7 @@ class MindSpaceDB {
   }
 
   async delete(storeName, key) {
+    await this.ensureReady();
     const tx = this.db.transaction(storeName, 'readwrite');
     const store = tx.objectStore(storeName);
     return new Promise((resolve, reject) => {
@@ -134,6 +167,8 @@ class MindSpaceDB {
 
   // Seed demo data
   async seedDemoData() {
+    await this.ensureReady();
+    
     try {
       // Check if data already exists
       const existingTherapists = await this.getAll('therapists');
@@ -235,6 +270,7 @@ class MindSpaceDB {
         fullName: 'Demo User',
         phone: '+1 (555) 000-0000',
         dateJoined: new Date().toISOString(),
+        profileImage: 'https://ui-avatars.com/api/?name=Demo+User&background=2D6A4F&color=fff&size=200',
         emergencyContact: {
           name: 'Emergency Contact',
           phone: '+1 (555) 111-1111'
@@ -253,15 +289,16 @@ class MindSpaceDB {
 // Create global instance
 const mindspaceDB = new MindSpaceDB();
 
-// Initialize on load
+// Initialize on load and expose as a global promise
 if (typeof window !== 'undefined') {
-  window.addEventListener('DOMContentLoaded', async () => {
-    try {
-      await mindspaceDB.init();
-      await mindspaceDB.seedDemoData();
+  window.dbReadyPromise = mindspaceDB.init()
+    .then(() => mindspaceDB.seedDemoData())
+    .then(() => {
       console.log('MindSpace Database initialized successfully');
-    } catch (error) {
+      return mindspaceDB;
+    })
+    .catch(error => {
       console.error('Database initialization error:', error);
-    }
-  });
+      throw error;
+    });
 }
