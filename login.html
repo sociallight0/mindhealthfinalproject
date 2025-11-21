@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login - MindSpace</title>
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/auth.css">
 </head>
 <body>
@@ -108,7 +108,16 @@
   <script>
     // Initialize login functionality
     document.addEventListener('DOMContentLoaded', async () => {
-      // Check if already logged in
+      // CRITICAL: Wait for database to be ready first
+      try {
+        await window.dbReadyPromise;
+      } catch (error) {
+        console.error('Failed to initialize database:', error);
+        alert('Database initialization failed. Please refresh the page.');
+        return;
+      }
+
+      // NOW it's safe to check if already logged in
       const isLoggedIn = await AuthUtils.isLoggedIn();
       if (isLoggedIn) {
         window.location.href = 'dashboard.html';
@@ -147,10 +156,19 @@
           const result = await Auth.login(email, password, rememberMe);
           
           if (result.success) {
-            UIUtils.showNotification('Login successful! Redirecting...', 'success');
-            setTimeout(() => {
-              window.location.href = 'dashboard.html';
-            }, 1000);
+            // Wait a moment for session to be fully saved
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Verify session was created
+            const session = await AuthUtils.getCurrentSession();
+            if (session) {
+              UIUtils.showNotification('Login successful! Redirecting...', 'success');
+              setTimeout(() => {
+                window.location.href = 'dashboard.html';
+              }, 500);
+            } else {
+              UIUtils.showError('formError', 'Login succeeded but session creation failed. Please try again.');
+            }
           } else {
             UIUtils.showError('formError', result.message || 'Invalid email or password');
           }
